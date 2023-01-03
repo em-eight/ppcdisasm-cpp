@@ -34,7 +34,11 @@ int main(int argc, char** argv) {
   disassemble_init_powerpc();
   ppc_cpu_t dialect = ppc_750cl_dialect;
   std::stringstream ss;
-  SymbolGetter symGetter = [](uint32_t addr) -> std::string { return (std::stringstream("lab_") << std::hex << addr).str(); };
+  SymbolGetter symGetter = [](uint32_t addr) -> std::string {
+    std::stringstream ss("lab_");
+    ss << std::hex << addr;
+    return ss.str();
+  };
   uint32_t memaddr = 0x80000000;
   steady_clock::time_point t2 = steady_clock::now();
   for (uint32_t i= 0; i < size/sizeof(insn); i++) {
@@ -52,6 +56,6 @@ int main(int argc, char** argv) {
   duration<double> decode = duration_cast<duration<double>>(t3 - t2);
   duration<double> all = duration_cast<duration<double>>(t3 - t1);
   std::cout << "Initialization: " << initialization.count() << std::endl;
-  std::cout << "Decode: " << total_insn/(decode.count()*1e6) << "M insn/s" << std::endl;
+  std::cout << "Disassemble: " << total_insn/(decode.count()*1e6) << "M insn/s" << std::endl;
   std::cout << "All: " << total_insn/(all.count()*1e6) << "M insn/s" << std::endl;
 }

@@ -1,4 +1,6 @@
 # ppcdisasm
+![build badge](https://github.com/em-eight/ppcdisasm-cpp/actions/workflows/test.yml/badge.svg?branch=main)
+
 A C++ PPC disassembler based on libopcodes
 
 ## Building/Installation

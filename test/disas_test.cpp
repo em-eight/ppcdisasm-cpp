@@ -28,7 +28,11 @@ TEST(DisasTest, OneInsnDisasm) {
   
   disassemble_init_powerpc();
   std::stringstream ss;
-  SymbolGetter symGetter = [](uint32_t addr) -> std::string { return (std::stringstream("lab_") << std::hex << addr).str(); };
+  SymbolGetter symGetter = [](uint32_t addr) -> std::string {
+    std::stringstream ss("lab_");
+    ss << std::hex << addr;
+    return ss.str();
+  };
   cout_insn_powerpc(insn, ss, dialect, memaddr, symGetter);
 
   EXPECT_STREQ(ss.str().c_str(), "addi    r0,r22,-1");
