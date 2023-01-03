@@ -19,6 +19,9 @@
 static unsigned short powerpc_opcd_indices[PPC_OPCD_SEGS + 1];
 // same for gekko and broadway
 const ppc_cpu_t ppc_750cl_dialect = PPC_OPCODE_PPC | PPC_OPCODE_750 | PPC_OPCODE_PPCPS;
+RelocationType RELOC_TYPE_NONE = {NO_RELOC, ""};
+
+SymbolGetter defaultSymbolGetter = [](uint32_t address) { return RELOC_TYPE_NONE; };
 
 /* Calculate opcode table indices to speed up disassembly,
    and init dialect.  */
@@ -182,8 +185,57 @@ static void cout_styled(std::ostream& os, enum disassembler_style style ATTRIBUT
   os << buf;
 }
 
-static void cout_address(std::ostream& os, uint32_t address, SymbolGetter symGetter) {
-  os << symGetter(address);
+static const char* getGasRelocSuffix(RelocationKind relocKind) {
+  switch (relocKind) {
+  case PPC_HA:
+    return "@ha";
+  case PPC_HI:
+    return "@h";
+  case PPC_L:
+    return "@l";
+  case PPC_SDA21:
+    return "@sda21";
+  default:
+    return "";
+  }
+}
+
+static const char* getMwccRelocSuffix(RelocationKind relocKind) {
+  switch (relocKind) {
+  case PPC_HA:
+    return "@ha";
+  case PPC_HI:
+    return "@h"; 
+  case PPC_L:
+    return "@l"; 
+  case PPC_SDA21:
+    return "";
+  default:
+    return "";
+  }
+}
+
+static void cout_address_gas(std::ostream& os, uint32_t target, SymbolGetter symGetter) {
+  RelocationType type = symGetter(target);
+  os << type.name << getGasRelocSuffix(type.kind);
+}
+
+static void cout_address_mwcc(std::ostream& os, uint32_t target, SymbolGetter symGetter) {
+  RelocationType type = symGetter(target);
+  os << type.name << getMwccRelocSuffix(type.kind);
+}
+
+static void cout_address(std::ostream& os, int32_t address, RelocStyle relocStyle, uint32_t target, SymbolGetter symGetter) {
+  switch (relocStyle) {
+  case RELOC_STYLE_GAS:
+    cout_address_gas(os, target, symGetter);
+    break;
+  case RELOC_STYLE_MWCC:
+    cout_address_mwcc(os, target, symGetter);
+    break;
+  default:
+    os << address;
+  }
 }
 
 /* Extract the operand value from the PowerPC or POWER instruction.  */
@@ -250,7 +302,8 @@ skip_optional_operands (const ppc_opindex_t *opindex,
   return true;
 }
 
-int cout_insn_powerpc(uint64_t insn, std::ostream& os, ppc_cpu_t dialect, uint32_t memaddr, SymbolGetter symGetter) {
+int cout_insn_powerpc(uint64_t insn, std::ostream& os, ppc_cpu_t dialect,
+    RelocStyle relocStyle, uint32_t memaddr, SymbolGetter symGetter) {
   const struct powerpc_opcode* opcode = lookup_powerpc(insn, dialect);
 
   int insn_length = 4;
@@ -324,9 +377,9 @@ int cout_insn_powerpc(uint64_t insn, std::ostream& os, ppc_cpu_t dialect, uint32
       else if ((operand->flags & PPC_OPERAND_ACC) != 0)
         cout_styled(os, dis_style_register, "a%" PRId64, value);
       else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0)
-        cout_address(os, memaddr + value, symGetter);
+        cout_address(os, value, relocStyle, memaddr + value, symGetter);
       else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0)
-        cout_address(os, (uint32_t) value & 0xffffffff, symGetter);
+        cout_address(os, value, relocStyle, value, symGetter);
       else if ((operand->flags & PPC_OPERAND_FSL) != 0)
         cout_styled(os, dis_style_register, "fsl%" PRId64, value);
       else if ((operand->flags & PPC_OPERAND_FCR) != 0)
@@ -357,14 +410,11 @@ int cout_insn_powerpc(uint64_t insn, std::ostream& os, ppc_cpu_t dialect, uint32
           cout_styled(os, dis_style_sub_mnemonic, "%s", cbnames[cc]);
       } else {
           /* An immediate, but what style?  */
-          enum disassembler_style style;
-
           if ((operand->flags & PPC_OPERAND_PARENS) != 0)
-            style = dis_style_address_offset;
+            cout_address(os, value, relocStyle, value, symGetter);
           else
-            style = dis_style_immediate;
+            cout_styled(os, dis_style_immediate, "%" PRId64, value);
 
-          cout_styled(os, style, "%" PRId64, value);
         }
 
       if (operand->shift == 52)

@@ -24,16 +24,22 @@ TEST(DisasTest, OneInsnDecode) {
 TEST(DisasTest, OneInsnDisasm) {
   uint32_t insn = 0x3816FFFF;
   ppc_cpu_t dialect = ppc_750cl_dialect;
-  uint32_t memaddr = 0x80000000;
   
   disassemble_init_powerpc();
   std::stringstream ss;
-  SymbolGetter symGetter = [](uint32_t addr) -> std::string {
-    std::stringstream ss("lab_");
-    ss << std::hex << addr;
-    return ss.str();
-  };
-  cout_insn_powerpc(insn, ss, dialect, memaddr, symGetter);
+  cout_insn_powerpc(insn, ss, dialect);
 
   EXPECT_STREQ(ss.str().c_str(), "addi    r0,r22,-1");
+}
+
+TEST(DisasTest, DISABLED_FuzzDisassembler) {
+  ppc_cpu_t dialect = ppc_750cl_dialect;
+  
+  disassemble_init_powerpc();
+  std::stringstream ss;
+  for (uint32_t insn = 0; insn <= UINT32_MAX; insn++)
+    cout_insn_powerpc(insn, ss, dialect);
+
+  // never crash
+  SUCCEED();
 }

@@ -8,6 +8,10 @@
 #include "ppcdisasm/ppc-operands.h"
 
 int main(int argc, char** argv) {
+  if (argc != 2) {
+    std::cout << "Expected input instruction binary" << std::endl;
+  }
+
   char* filename = argv[1];
   std::ifstream istrm(filename, std::ios::in | std::ios::binary | std::ios::ate);
   const int64_t size = istrm.tellg();

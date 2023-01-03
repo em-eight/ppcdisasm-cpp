@@ -19,5 +19,5 @@ jobs:
       with:
         sourcedir: '.'
         builddir: 'build'
-        cmakeoptions: ' -DCMAKE_BUILD_TYPE=Release '
+        cmakeoptions: ' -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON '
         ctestoptions: ''

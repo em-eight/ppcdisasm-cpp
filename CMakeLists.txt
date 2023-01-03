@@ -5,6 +5,15 @@ project(ppcdisasm VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
+add_library(ppcdisasm SHARED src/ppc-dis.cpp src/ppc-opc.c)
+target_include_directories(ppcdisasm PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>  # <prefix>/include
+)
+
+install(TARGETS ppcdisasm DESTINATION lib)
+
+if(BUILD_TESTING)
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -13,12 +22,6 @@ FetchContent_Declare(
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
-
-add_library(ppcdisasm SHARED src/ppc-dis.cpp src/ppc-opc.c)
-target_include_directories(ppcdisasm PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>  # <prefix>/include
-)
 
 add_executable(benchmarkDecode src/benchmarkDecode.cpp)
 target_include_directories(benchmarkDecode PUBLIC
@@ -40,8 +43,6 @@ target_link_libraries(
   ppcdisasm
 )
 
-install(TARGETS ppcdisasm DESTINATION lib)
-
 enable_testing()
 
 add_executable(disas_test test/disas_test.cpp)
@@ -57,3 +58,4 @@ target_link_libraries(
 
 include(GoogleTest)
 gtest_discover_tests(disas_test)
+endif()

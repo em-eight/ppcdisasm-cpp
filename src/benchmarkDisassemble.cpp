@@ -9,6 +9,10 @@
 #include "ppcdisasm/ppc-operands.h"
 
 int main(int argc, char** argv) {
+  if (argc != 2) {
+    std::cout << "Expected input instruction binary" << std::endl;
+  }
+
   char* filename = argv[1];
   std::ifstream istrm(filename, std::ios::in | std::ios::binary | std::ios::ate);
   const int64_t size = istrm.tellg();
@@ -34,22 +38,15 @@ int main(int argc, char** argv) {
   disassemble_init_powerpc();
   ppc_cpu_t dialect = ppc_750cl_dialect;
   std::stringstream ss;
-  SymbolGetter symGetter = [](uint32_t addr) -> std::string {
-    std::stringstream ss("lab_");
-    ss << std::hex << addr;
-    return ss.str();
-  };
-  uint32_t memaddr = 0x80000000;
   steady_clock::time_point t2 = steady_clock::now();
   for (uint32_t i= 0; i < size/sizeof(insn); i++) {
     insn = insns[i];
-    cout_insn_powerpc(insn, ss, dialect, memaddr, symGetter);
-    memaddr += 4;
+    cout_insn_powerpc(insn, ss, dialect);
     ss << "\n";
   }
-  // write to output file
-  // std::ofstream of("tmp.txt");
-  // of << ss.rdbuf();
+  // write to output
+  std::ofstream of("tmp.s");
+  of << ss.rdbuf();
   steady_clock::time_point t3 = steady_clock::now();
 
   duration<double> initialization = duration_cast<duration<double>>(t2 - t1);
