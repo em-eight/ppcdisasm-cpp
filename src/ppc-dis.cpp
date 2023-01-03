@@ -234,7 +234,12 @@ static void cout_address(std::ostream& os, int32_t address, RelocStyle relocStyl
     cout_address_mwcc(os, target, symGetter);
     break;
   default:
-    os << address;
+    char hex_string[22];
+    if (address >= 0)
+      sprintf(hex_string, "0x%X", address);
+    else
+      sprintf(hex_string, "-0x%X", -address);
+    os << hex_string;
   }
 }
 
