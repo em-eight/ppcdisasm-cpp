@@ -172,14 +172,18 @@ fprintf_styled (FILE *f, enum disassembler_style style ATTRIBUTE_UNUSED,
 
   return res; 
 }
+#include <iostream>
 
-template<class... Args>
-static void cout_styled(std::ostream& os, enum disassembler_style style ATTRIBUTE_UNUSED, const char *fmt, Args... args) {
-  (os << ... << args);
+static void cout_styled(std::ostream& os, enum disassembler_style style ATTRIBUTE_UNUSED, const char *fmt, ...) {
+  va_list ap;
+  va_start (ap, fmt);
+  char buf[32]; vsnprintf(buf, sizeof(buf), fmt, ap); 
+  va_end(ap);
+  os << buf;
 }
 
-static void cout_address(std::ostream& os, uint32_t address) {
-  os << address;
+static void cout_address(std::ostream& os, uint32_t address, SymbolGetter symGetter) {
+  os << symGetter(address);
 }
 
 /* Extract the operand value from the PowerPC or POWER instruction.  */
@@ -320,9 +324,9 @@ int cout_insn_powerpc(uint64_t insn, std::ostream& os, ppc_cpu_t dialect, uint32
       else if ((operand->flags & PPC_OPERAND_ACC) != 0)
         cout_styled(os, dis_style_register, "a%" PRId64, value);
       else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0)
-        cout_address(os, memaddr + value);
+        cout_address(os, memaddr + value, symGetter);
       else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0)
-        cout_address(os, (uint32_t) value & 0xffffffff);
+        cout_address(os, (uint32_t) value & 0xffffffff, symGetter);
       else if ((operand->flags & PPC_OPERAND_FSL) != 0)
         cout_styled(os, dis_style_register, "fsl%" PRId64, value);
       else if ((operand->flags & PPC_OPERAND_FCR) != 0)

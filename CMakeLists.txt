@@ -20,14 +20,23 @@ target_include_directories(ppcdisasm PUBLIC
   $<INSTALL_INTERFACE:include>  # <prefix>/include
 )
 
-add_executable(benchmark src/benchmark.cpp)
-target_include_directories(benchmark PUBLIC
+add_executable(benchmarkDecode src/benchmarkDecode.cpp)
+target_include_directories(benchmarkDecode PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>  # <prefix>/include
 )
 target_link_libraries(
-  benchmark
-  GTest::gtest_main
+  benchmarkDecode
+  ppcdisasm
+)
+
+add_executable(benchmarkDisassemble src/benchmarkDisassemble.cpp)
+target_include_directories(benchmarkDisassemble PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>  # <prefix>/include
+)
+target_link_libraries(
+  benchmarkDisassemble
   ppcdisasm
 )
 

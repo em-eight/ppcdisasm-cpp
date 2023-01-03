@@ -59,10 +59,9 @@ int main(int argc, char** argv) {
         }
         int64_t value = operand_value_powerpc (operand, insn, dialect);
       }
-
-      //std::cout << opcode->name << std::endl;
   }
   steady_clock::time_point t3 = steady_clock::now();
+
   duration<double> initialization = duration_cast<duration<double>>(t2 - t1);
   duration<double> decode = duration_cast<duration<double>>(t3 - t2);
   duration<double> all = duration_cast<duration<double>>(t3 - t1);
