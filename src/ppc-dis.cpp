@@ -446,3 +446,75 @@ int cout_insn_powerpc(uint64_t insn, std::ostream& os, ppc_cpu_t dialect,
 
   return insn_length;
 }
+
+void cout_define(std::ostream& os, const powerpc_opcode* op, uint64_t val, const std::string& prefix, const std::string postfix) {
+  int namesize = strlen(op->name);
+  std::string define = prefix;
+  for (uint32_t i = 0; i < namesize; i++) {
+    if (std::isalpha(op->name[i])) {
+      define += std::toupper(op->name[i]);
+    } else if (std::isdigit(op->name[i])) {
+      define += op->name[i];
+    } else if (op->name[i] == '.') {
+      define += '_';
+    } else if (op->name[i] == '_') {
+      define += '_';
+    } else if (op->name[i] == '+') {
+      define += "p";
+    } else if (op->name[i] == '-') {
+      define += "m";
+    } else {
+      std::cerr << "Unexpected character " << op->name[i] << " in " << op->name << std::endl;
+      throw new std::runtime_error("Unexpected character");
+    }
+  }
+  os << "#define " << define << " " << val  << postfix << "\n";
+}
+
+void cout_all_form_defines(std::ostream& os, ppc_cpu_t dialect, std::string prefix) {
+  for (uint32_t idx = 0; idx < powerpc_num_opcodes; idx++) {
+    const powerpc_opcode* op = &powerpc_opcodes[idx];
+    // Only generate defines for the most general forms of opcodes
+    if ((op->deprecated & PPC_OPCODE_RAW) != 0 || (op->flags & dialect) == 0) {
+        continue;
+    }
+
+    cout_define(os, op, op->opcode, prefix + "_FORM_", "ull");
+  }
+}
+
+// doesn't work, no way to tell main instructions from alternate forms currently :(
+void cout_all_opcode_defines(std::ostream& os, ppc_cpu_t dialect, std::string prefix) {
+  const struct powerpc_opcode *opcode, *opcode_end;
+  unsigned long op;
+
+  for (op = 0; op < PPC_OPCD_SEGS; op++) {
+    opcode_end = powerpc_opcodes + powerpc_opcd_indices[op + 1];
+    for (opcode = powerpc_opcodes + powerpc_opcd_indices[op];
+        opcode < opcode_end;
+        ++opcode) {
+      // Only generate defines for the most general forms of opcodes
+      if ((opcode->deprecated & PPC_OPCODE_RAW) != 0 || (opcode->flags & dialect) == 0) {
+          continue;
+      }
+
+      cout_define(os, opcode, opcode->opcode, prefix + "_OPCODE_", "ull");
+      // stop after the first non-extended mnemonic, the rest are forms
+      break;
+    }
+  }
+}
+
+void cout_all_mnem_defines(std::ostream& os, ppc_cpu_t dialect, std::string prefix) {
+  const struct powerpc_opcode *opcode, *opcode_end;
+  opcode_end = powerpc_opcodes + powerpc_num_opcodes;
+  int32_t idx = 0;
+  for (opcode = powerpc_opcodes; opcode < opcode_end; opcode++) {
+    if ((opcode->flags & dialect) == 0) {
+      idx++;
+      continue;
+    }
+    cout_define(os, opcode, idx, prefix + "_MNEMONIC_", "");
+    idx++;
+  }
+}

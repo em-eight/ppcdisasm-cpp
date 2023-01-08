@@ -32,6 +32,9 @@ int main(int argc, char** argv) {
     idx++;
   }
 
+  std::unordered_map<std::string, uint64_t> mnemonics;
+  std::unordered_map<uint64_t, std::string> ops;
+
   using namespace std::chrono;
   steady_clock::time_point t1 = steady_clock::now();
   disassemble_init_powerpc();
@@ -40,6 +43,23 @@ int main(int argc, char** argv) {
   for (uint32_t i= 0; i < size/sizeof(insn); i++) {
     insn = insns[i];
     const struct powerpc_opcode* opcode = lookup_powerpc (insn, dialect);
+
+    if ((opcode->deprecated & PPC_OPCODE_RAW) != 0) { continue; }
+    if (auto it = mnemonics.find(opcode->name); it != mnemonics.end()) {
+      if (it->second != opcode->opcode) {
+        std::cerr << "Mnemonic " << opcode->name << " has two opcodes " << opcode->opcode << " and " << it->second << std::endl;
+      }
+    } else {
+      mnemonics[opcode->name] = opcode->opcode;
+    }
+    if (auto it = ops.find(opcode->opcode); it != ops.end()) {
+      if (it->second != opcode->name) {
+        std::cerr << "Opcode " << opcode->opcode << " has two names " << opcode->name << " and " << it->second << std::endl;
+      }
+    } else {
+      ops[opcode->opcode] = opcode->name;
+      std::cout << opcode->name << std::endl;
+    }
 
     const ppc_opindex_t *opindex;
     const struct powerpc_operand *operand;

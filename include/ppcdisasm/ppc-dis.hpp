@@ -65,6 +65,12 @@ int64_t operand_value_powerpc (const struct powerpc_operand *operand, uint64_t i
 */
 inline int64_t operand_value_powerpc (uint32_t opindex, uint64_t insn, ppc_cpu_t dialect) 
     { return operand_value_powerpc(&powerpc_operands[opindex], insn, dialect); }
+/**
+ * @brief Get the mnemonic ID of the opcode (aka its index in the opcode table)
+*/
+inline int32_t get_mnemonic(const struct powerpc_opcode* opcode) {
+  return opcode - powerpc_opcodes;
+}
 
 /**
  * @brief Write the disassembled instruction to the provided std::ostream

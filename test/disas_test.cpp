@@ -5,6 +5,8 @@
 
 #include "ppcdisasm/ppc-dis.hpp"
 #include "ppcdisasm/ppc-operands.h"
+#include "ppcdisasm/ppc-mnemonics.h"
+#include "ppcdisasm/ppc-forms.h"
 
 TEST(DisasTest, OneInsnDecode) {
   uint32_t insn = 0x3816FFFF;
@@ -19,6 +21,8 @@ TEST(DisasTest, OneInsnDecode) {
   EXPECT_EQ(rt, 0);
   EXPECT_EQ(ra, 22);
   EXPECT_EQ(si, -1);
+  EXPECT_EQ(get_mnemonic(opcode), PPC_MNEMONIC_ADDI);
+  EXPECT_EQ(opcode->opcode, PPC_FORM_ADDI);
 }
 
 TEST(DisasTest, OneInsnDisasm) {

@@ -33,6 +33,16 @@ target_link_libraries(
   ppcdisasm
 )
 
+add_executable(genOpIds src/genOpIds.cpp)
+target_include_directories(benchmarkDecode PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>  # <prefix>/include
+)
+target_link_libraries(
+  genOpIds
+  ppcdisasm
+)
+
 add_executable(benchmarkDisassemble src/benchmarkDisassemble.cpp)
 target_include_directories(benchmarkDisassemble PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
