@@ -13,10 +13,14 @@
 
 #include "ppcdisasm/ppc-dis.hpp"
 
+using namespace ppcdisasm;
+
 // in ppc-dis.cpp
+namespace ppcdisasm {
 extern void cout_all_opcode_defines(std::ostream& os, ppc_cpu_t, std::string);
 extern void cout_all_form_defines(std::ostream& os, ppc_cpu_t, std::string);
 extern void cout_all_mnem_defines(std::ostream& os, ppc_cpu_t, std::string);
+}
 
 /**
  * Generates a defines file for each opcode/form/mnemonic

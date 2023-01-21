@@ -16,6 +16,9 @@
 #include "ppcdisasm/ppc-dis.hpp"
 
 #define PPC_OPCD_SEGS (1 + PPC_OP (-1))
+
+namespace ppcdisasm {
+
 static unsigned short powerpc_opcd_indices[PPC_OPCD_SEGS + 1];
 // same for gekko and broadway
 const ppc_cpu_t ppc_750cl_dialect = PPC_OPCODE_PPC | PPC_OPCODE_750 | PPC_OPCODE_PPCPS;
@@ -517,4 +520,6 @@ void cout_all_mnem_defines(std::ostream& os, ppc_cpu_t dialect, std::string pref
     cout_define(os, opcode, idx, prefix + "_MNEMONIC_", "");
     idx++;
   }
+}
+
 }

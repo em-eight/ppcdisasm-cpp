@@ -8,6 +8,8 @@
 #include "ppcdisasm/ppc-mnemonics.h"
 #include "ppcdisasm/ppc-forms.h"
 
+using namespace ppcdisasm;
+
 TEST(DisasTest, OneInsnDecode) {
   uint32_t insn = 0x3816FFFF;
   

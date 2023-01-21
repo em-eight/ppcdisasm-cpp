@@ -7,6 +7,8 @@
 #include "ppcdisasm/ppc-dis.hpp"
 #include "ppcdisasm/ppc-operands.h"
 
+using namespace ppcdisasm;
+
 int main(int argc, char** argv) {
   if (argc != 2) {
     std::cout << "Expected input instruction binary" << std::endl;

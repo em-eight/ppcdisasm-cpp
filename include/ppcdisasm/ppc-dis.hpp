@@ -8,6 +8,8 @@ extern "C" {
 #include <string>
 #include <functional>
 
+namespace ppcdisasm {
+
 /**
  * @brief
  * Style of relocation formats
@@ -80,3 +82,5 @@ int cout_insn_powerpc(uint64_t insn, std::ostream& os, ppc_cpu_t dialect,
 /* Specifies if an opcode's operand can be skipped */
 bool skip_optional_operands (const ppc_opindex_t *opindex,
 			uint64_t insn, ppc_cpu_t dialect, bool *is_pcrel);
+
+}
