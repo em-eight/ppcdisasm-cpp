@@ -75,7 +75,12 @@ inline int32_t get_mnemonic(const struct powerpc_opcode* opcode) {
 }
 
 /**
- * @brief Write the disassembled instruction to the provided std::ostream
+ * @brief Write the decoded instruction disassembly to the provided std::ostream. opcode must be non-null!
+*/
+int cout_decoded_insn_powerpc(struct powerpc_opcode* opcode, uint64_t insn, std::ostream& os, ppc_cpu_t dialect,
+    RelocStyle relocStyle=RELOC_STYLE_NO_RELOCS, uint32_t memaddr=0x0, SymbolGetter symbolGetter=defaultSymbolGetter);
+/**
+ * @brief Write the instruction disassembly to the provided std::ostream
 */
 int cout_insn_powerpc(uint64_t insn, std::ostream& os, ppc_cpu_t dialect,
     RelocStyle relocStyle=RELOC_STYLE_NO_RELOCS, uint32_t memaddr=0x0, SymbolGetter symbolGetter=defaultSymbolGetter);

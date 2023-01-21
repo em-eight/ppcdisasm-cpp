@@ -310,135 +310,141 @@ skip_optional_operands (const ppc_opindex_t *opindex,
   return true;
 }
 
+int cout_decoded_insn_powerpc(const struct powerpc_opcode* opcode, uint64_t insn, std::ostream& os, ppc_cpu_t dialect,
+    RelocStyle relocStyle, uint32_t memaddr, SymbolGetter symGetter) {
+  const ppc_opindex_t *opindex;
+  const struct powerpc_operand *operand;
+  enum AsmSep{
+    need_comma = 0,
+    need_1space = 1,
+    need_2spaces = 2,
+    need_3spaces = 3,
+    need_4spaces = 4,
+    need_5spaces = 5,
+    need_6spaces = 6,
+    need_7spaces = 7,
+    need_paren
+  } op_separator;
+  bool skip_optional;
+  bool is_pcrel;
+  uint64_t d34;
+  int blanks;
+
+  cout_styled(os, dis_style_mnemonic, "%s", opcode->name);
+  /* gdb fprintf_styled_func doesn't return count printed.  */
+  blanks = 8 - strlen (opcode->name);
+  if (blanks <= 0)
+  blanks = 1;
+
+  /* Now extract and print the operands.  */
+  op_separator = (AsmSep) blanks;
+  skip_optional = false;
+  is_pcrel = false;
+  d34 = 0;
+  for (opindex = opcode->operands; *opindex != 0; opindex++)
+  {
+    int64_t value;
+
+    operand = powerpc_operands + *opindex;
+
+    /* If all of the optional operands past this one have their
+      default value, then don't print any of them.  Except in
+      raw mode, print them all.  */
+    if ((operand->flags & PPC_OPERAND_OPTIONAL) != 0
+        && (dialect & PPC_OPCODE_RAW) == 0)
+      {
+        if (!skip_optional)
+          skip_optional = skip_optional_operands (opindex, insn, dialect, &is_pcrel);
+        if (skip_optional)
+          continue;
+      }
+
+    value = operand_value_powerpc (operand, insn, dialect);
+
+    if (op_separator == need_comma)
+      cout_styled(os, dis_style_text, ",");
+    else if (op_separator == need_paren)
+      cout_styled(os, dis_style_text, "(");
+    else
+      cout_styled(os, dis_style_text, "%*s", op_separator, " ");
+
+    /* Print the operand as directed by the flags.  */
+    if ((operand->flags & PPC_OPERAND_GPR) != 0
+        || ((operand->flags & PPC_OPERAND_GPR_0) != 0 && value != 0))
+      cout_styled(os, dis_style_register, "r%" PRId64, value);
+    else if ((operand->flags & PPC_OPERAND_FPR) != 0)
+      cout_styled(os, dis_style_register, "f%" PRId64, value);
+    else if ((operand->flags & PPC_OPERAND_VR) != 0)
+      cout_styled(os, dis_style_register, "v%" PRId64, value);
+    else if ((operand->flags & PPC_OPERAND_VSR) != 0)
+      cout_styled(os, dis_style_register, "vs%" PRId64, value);
+    else if ((operand->flags & PPC_OPERAND_ACC) != 0)
+      cout_styled(os, dis_style_register, "a%" PRId64, value);
+    else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0)
+      cout_address(os, value, relocStyle, memaddr + value, symGetter);
+    else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0)
+      cout_address(os, value, relocStyle, value, symGetter);
+    else if ((operand->flags & PPC_OPERAND_FSL) != 0)
+      cout_styled(os, dis_style_register, "fsl%" PRId64, value);
+    else if ((operand->flags & PPC_OPERAND_FCR) != 0)
+      cout_styled(os, dis_style_register, "fcr%" PRId64, value);
+    else if ((operand->flags & PPC_OPERAND_UDI) != 0)
+      cout_styled(os, dis_style_register, "%" PRId64, value);
+    else if ((operand->flags & PPC_OPERAND_CR_REG) != 0
+      && (operand->flags & PPC_OPERAND_CR_BIT) == 0
+      && (((dialect & PPC_OPCODE_PPC) != 0)
+          || ((dialect & PPC_OPCODE_VLE) != 0)))
+      cout_styled(os, dis_style_register, "cr%" PRId64, value);
+    else if ((operand->flags & PPC_OPERAND_CR_BIT) != 0
+      && (operand->flags & PPC_OPERAND_CR_REG) == 0
+      && (((dialect & PPC_OPCODE_PPC) != 0)
+          || ((dialect & PPC_OPCODE_VLE) != 0))) {
+        static const char *cbnames[4] = { "lt", "gt", "eq", "so" };
+        int cr;
+        int cc;
+
+        cr = value >> 2;
+        cc = value & 3;
+        if (cr != 0) {
+          cout_styled(os, dis_style_text, "4*");
+          cout_styled(os, dis_style_register, "cr%d", cr);
+          cout_styled(os, dis_style_text, "+");
+        }
+
+        cout_styled(os, dis_style_sub_mnemonic, "%s", cbnames[cc]);
+    } else {
+        /* An immediate, but what style?  */
+        if ((operand->flags & PPC_OPERAND_PARENS) != 0)
+          cout_address(os, value, relocStyle, value, symGetter);
+        else
+          cout_styled(os, dis_style_immediate, "%" PRId64, value);
+
+      }
+
+    if (operand->shift == 52)
+      is_pcrel = value != 0;
+    else if (operand->bitm == UINT64_C (0x3ffffffff))
+      d34 = value;
+
+    if (op_separator == need_paren)
+      cout_styled(os, dis_style_text, ")");
+
+    op_separator = need_comma;
+    if ((operand->flags & PPC_OPERAND_PARENS) != 0)
+      op_separator = need_paren;
+  }
+
+  /* We have found and printed an instruction.  */
+  return 4;
+}
+
 int cout_insn_powerpc(uint64_t insn, std::ostream& os, ppc_cpu_t dialect,
     RelocStyle relocStyle, uint32_t memaddr, SymbolGetter symGetter) {
   const struct powerpc_opcode* opcode = lookup_powerpc(insn, dialect);
 
   int insn_length = 4;
   if (opcode != nullptr) {
-    const ppc_opindex_t *opindex;
-    const struct powerpc_operand *operand;
-    enum AsmSep{
-      need_comma = 0,
-      need_1space = 1,
-      need_2spaces = 2,
-      need_3spaces = 3,
-      need_4spaces = 4,
-      need_5spaces = 5,
-      need_6spaces = 6,
-      need_7spaces = 7,
-      need_paren
-    } op_separator;
-    bool skip_optional;
-    bool is_pcrel;
-    uint64_t d34;
-    int blanks;
-
-    cout_styled(os, dis_style_mnemonic, "%s", opcode->name);
-    /* gdb fprintf_styled_func doesn't return count printed.  */
-    blanks = 8 - strlen (opcode->name);
-    if (blanks <= 0)
-    blanks = 1;
-
-    /* Now extract and print the operands.  */
-    op_separator = (AsmSep) blanks;
-    skip_optional = false;
-    is_pcrel = false;
-    d34 = 0;
-    for (opindex = opcode->operands; *opindex != 0; opindex++)
-    {
-      int64_t value;
-
-      operand = powerpc_operands + *opindex;
-
-      /* If all of the optional operands past this one have their
-        default value, then don't print any of them.  Except in
-        raw mode, print them all.  */
-      if ((operand->flags & PPC_OPERAND_OPTIONAL) != 0
-          && (dialect & PPC_OPCODE_RAW) == 0)
-        {
-          if (!skip_optional)
-            skip_optional = skip_optional_operands (opindex, insn, dialect, &is_pcrel);
-          if (skip_optional)
-            continue;
-        }
-
-      value = operand_value_powerpc (operand, insn, dialect);
-
-      if (op_separator == need_comma)
-        cout_styled(os, dis_style_text, ",");
-      else if (op_separator == need_paren)
-        cout_styled(os, dis_style_text, "(");
-      else
-        cout_styled(os, dis_style_text, "%*s", op_separator, " ");
-
-      /* Print the operand as directed by the flags.  */
-      if ((operand->flags & PPC_OPERAND_GPR) != 0
-          || ((operand->flags & PPC_OPERAND_GPR_0) != 0 && value != 0))
-        cout_styled(os, dis_style_register, "r%" PRId64, value);
-      else if ((operand->flags & PPC_OPERAND_FPR) != 0)
-        cout_styled(os, dis_style_register, "f%" PRId64, value);
-      else if ((operand->flags & PPC_OPERAND_VR) != 0)
-        cout_styled(os, dis_style_register, "v%" PRId64, value);
-      else if ((operand->flags & PPC_OPERAND_VSR) != 0)
-        cout_styled(os, dis_style_register, "vs%" PRId64, value);
-      else if ((operand->flags & PPC_OPERAND_ACC) != 0)
-        cout_styled(os, dis_style_register, "a%" PRId64, value);
-      else if ((operand->flags & PPC_OPERAND_RELATIVE) != 0)
-        cout_address(os, value, relocStyle, memaddr + value, symGetter);
-      else if ((operand->flags & PPC_OPERAND_ABSOLUTE) != 0)
-        cout_address(os, value, relocStyle, value, symGetter);
-      else if ((operand->flags & PPC_OPERAND_FSL) != 0)
-        cout_styled(os, dis_style_register, "fsl%" PRId64, value);
-      else if ((operand->flags & PPC_OPERAND_FCR) != 0)
-        cout_styled(os, dis_style_register, "fcr%" PRId64, value);
-      else if ((operand->flags & PPC_OPERAND_UDI) != 0)
-        cout_styled(os, dis_style_register, "%" PRId64, value);
-      else if ((operand->flags & PPC_OPERAND_CR_REG) != 0
-        && (operand->flags & PPC_OPERAND_CR_BIT) == 0
-        && (((dialect & PPC_OPCODE_PPC) != 0)
-            || ((dialect & PPC_OPCODE_VLE) != 0)))
-        cout_styled(os, dis_style_register, "cr%" PRId64, value);
-      else if ((operand->flags & PPC_OPERAND_CR_BIT) != 0
-        && (operand->flags & PPC_OPERAND_CR_REG) == 0
-        && (((dialect & PPC_OPCODE_PPC) != 0)
-            || ((dialect & PPC_OPCODE_VLE) != 0))) {
-          static const char *cbnames[4] = { "lt", "gt", "eq", "so" };
-          int cr;
-          int cc;
-
-          cr = value >> 2;
-          cc = value & 3;
-          if (cr != 0) {
-            cout_styled(os, dis_style_text, "4*");
-            cout_styled(os, dis_style_register, "cr%d", cr);
-            cout_styled(os, dis_style_text, "+");
-          }
-
-          cout_styled(os, dis_style_sub_mnemonic, "%s", cbnames[cc]);
-      } else {
-          /* An immediate, but what style?  */
-          if ((operand->flags & PPC_OPERAND_PARENS) != 0)
-            cout_address(os, value, relocStyle, value, symGetter);
-          else
-            cout_styled(os, dis_style_immediate, "%" PRId64, value);
-
-        }
-
-      if (operand->shift == 52)
-        is_pcrel = value != 0;
-      else if (operand->bitm == UINT64_C (0x3ffffffff))
-        d34 = value;
-
-      if (op_separator == need_paren)
-        cout_styled(os, dis_style_text, ")");
-
-      op_separator = need_comma;
-      if ((operand->flags & PPC_OPERAND_PARENS) != 0)
-        op_separator = need_paren;
-    }
-
-    /* We have found and printed an instruction.  */
+    cout_decoded_insn_powerpc(opcode, insn, os, dialect, relocStyle, memaddr, symGetter);
     return insn_length;
   }
 
