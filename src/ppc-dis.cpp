@@ -14,6 +14,7 @@
 #endif
 
 #include "ppcdisasm/ppc-dis.hpp"
+#include "ppcdisasm/ppc-relocations.h"
 
 #define PPC_OPCD_SEGS (1 + PPC_OP (-1))
 
@@ -22,9 +23,9 @@ namespace ppcdisasm {
 static unsigned short powerpc_opcd_indices[PPC_OPCD_SEGS + 1];
 // same for gekko and broadway
 const ppc_cpu_t ppc_750cl_dialect = PPC_OPCODE_PPC | PPC_OPCODE_750 | PPC_OPCODE_PPCPS;
-RelocationType RELOC_TYPE_NONE = {NO_RELOC, ""};
+RelocationTarget RELOC_TARGET_NONE = {R_PPC_NONE, ""};
 
-SymbolGetter defaultSymbolGetter = [](uint32_t address) { return RELOC_TYPE_NONE; };
+SymbolGetter defaultSymbolGetter = [](uint32_t address) { return RELOC_TARGET_NONE; };
 
 /* Calculate opcode table indices to speed up disassembly,
    and init dialect.  */
@@ -188,30 +189,30 @@ static void cout_styled(std::ostream& os, enum disassembler_style style ATTRIBUT
   os << buf;
 }
 
-static const char* getGasRelocSuffix(RelocationKind relocKind) {
+static const char* getGasRelocSuffix(int32_t relocKind) {
   switch (relocKind) {
-  case PPC_HA:
+  case R_PPC_ADDR16_HA:
     return "@ha";
-  case PPC_HI:
+  case R_PPC_ADDR16_HI:
     return "@h";
-  case PPC_L:
+  case R_PPC_ADDR16_LO:
     return "@l";
-  case PPC_SDA21:
+  case R_PPC_EMB_SDA21:
     return "@sda21";
   default:
     return "";
   }
 }
 
-static const char* getMwccRelocSuffix(RelocationKind relocKind) {
+static const char* getMwccRelocSuffix(int32_t relocKind) {
   switch (relocKind) {
-  case PPC_HA:
+  case R_PPC_ADDR16_HA:
     return "@ha";
-  case PPC_HI:
-    return "@h"; 
-  case PPC_L:
-    return "@l"; 
-  case PPC_SDA21:
+  case R_PPC_ADDR16_HI:
+    return "@h";
+  case R_PPC_ADDR16_LO:
+    return "@l";
+  case R_PPC_EMB_SDA21:
     return "";
   default:
     return "";
@@ -219,12 +220,12 @@ static const char* getMwccRelocSuffix(RelocationKind relocKind) {
 }
 
 static void cout_address_gas(std::ostream& os, uint32_t target, SymbolGetter symGetter) {
-  RelocationType type = symGetter(target);
+  RelocationTarget type = symGetter(target);
   os << type.name << getGasRelocSuffix(type.kind);
 }
 
 static void cout_address_mwcc(std::ostream& os, uint32_t target, SymbolGetter symGetter) {
-  RelocationType type = symGetter(target);
+  RelocationTarget type = symGetter(target);
   os << type.name << getMwccRelocSuffix(type.kind);
 }
 

@@ -22,31 +22,19 @@ enum RelocStyle {
 
 /**
  * @brief
- * Relocation: kind of potential needed suffix
+ * The result of a symbol lookup. Use RELOC_TARGET_NONE if no relocation targets this instruction
 */
-enum RelocationKind {
-  NO_RELOC=0, // No relocation in this insn
-  PPC_HA, // @ha
-  PPC_HI, // @h
-  PPC_L, // @l
-  PPC_SDA21, // @sda21
-  ABSOLUTE,
-};
-
-/**
- * @brief
- * The result of a symbol lookup. Use RELOC_TYPE_NONE if no relocation targets this instruction
-*/
-struct RelocationType {
-  RelocationKind kind;
+struct RelocationTarget {
+  // kind values defined in ppc-relocations.hpp
+  int32_t kind;
   std::string name;
-  RelocationType(RelocationKind kind, std::string name) : kind(kind), name(name) {}
+  RelocationTarget(int32_t kind, std::string name) : kind(kind), name(name) {}
 };
-extern RelocationType RELOC_TYPE_NONE;
+extern RelocationTarget RELOC_TARGET_NONE;
 
-// Symbol lookup: gets address and returns the corresponding RelocationType
-typedef std::function<RelocationType(uint32_t)> SymbolGetter;
-// Just returns RELOC_TYPE_NONE
+// Symbol lookup: gets address and returns the corresponding RelocationTarget
+typedef std::function<RelocationTarget(uint32_t)> SymbolGetter;
+// Just returns RELOC_TARGET_NONE
 extern SymbolGetter defaultSymbolGetter;
 
 // same for gekko and broadway
