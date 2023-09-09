@@ -5,7 +5,11 @@ project(ppcdisasm VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
+if(BUILD_SHARED)
 add_library(ppcdisasm SHARED src/ppc-dis.cpp src/ppc-opc.c)
+else()
+add_library(ppcdisasm src/ppc-dis.cpp src/ppc-opc.c)
+endif()
 target_include_directories(ppcdisasm PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>  # <prefix>/include
